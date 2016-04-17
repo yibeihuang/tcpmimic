@@ -2,67 +2,75 @@ __author__ = 'yibeihuang'
 
 #---------------------Source Import--------------------
 import sys
-import socket
-import thread
-from threading import Thread
-import time
-from time import strftime
+import sockets
 import struct
-
-#------------------------Variables---------------------
-MAXSEGMENTSIZE = 576                   # File will be divided into this size of segments to be transferred
-CORRUPTION = False               # The flag of first receiving
-ACK_ACK = 0                            # ACK # used to send ACK back to sender
-ACK_SEQUENCE = 0                       # Sequence # used to send ACK back to sender
-TRANS_FINISH = False                   # The flag to mark if the transmission is finished
 
 #-------------------------Classes----------------------
 class receiver:
-    def __init__(self, filename, listening_port, sender_IP, sender_port, log_filename):
-        self.filename = filename
-        self.listening_port = listening_port
-        self.sender_IP = sender_IP
-        self.sender_port = sender_port
+    def __init__(self, filename, listening_port, sender_ip, sender_port, log_filename):
         self.log_filename = log_filename
+        self.local_port = listening_port
+        self.remote_port = sender_port
+        self.recv_seq = 0
+        self.send_seq = 0
+        ############################Receiving###########################
+        self.recvsock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.recvsock.bind((sender_ip, listening_port))
 
-    def receive(self):
-        pass
+        ############################Sending#############################     
+        self.sendsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.sendsock.connect((sender_ip, sender_port))
+        ############################Savd File###########################             
+        try:
+            self.file_ptr = open(filename, 'w')
+        except:
+            pass
+        ############################Log File############################
+          
 
-    def write_file(self):
-        pass
-
-    def validate(self):
-        pass
+    def write_file(self, data):
+        self.file_ptr.write(data)
 
     def write_log(self):
         pass
 
+    def send_ack(self, ack):
+        header = self.gen_header()
+        self.sendsock.send(header)
 
-    def send_ack(self):
-        'send ack of the largest sequence number of the in order segment'
-        ACKsocket.sendto(ACKdata, (self.sender_IP, self.sender_port))
+    def check_chksum(pkt, chksum):
+        return True         #not implemented yet
+
+    def gen_header(self):
+        header = struct.pack('HHIIBBHHH',self.local_port, self.remote_port, self.send_seq, self.recv_seq, 0, 0, 0, 0, 0)
+        chksum = self.get_chksum(header, seq)
+        return struct.pack('HHIIBBHHH', self.local_port, self.remote_port, self.send_seq, self.recv_seq, 0, 0, 0, chksum, 0)
+
+    def parse_header(header_packed):
+        header = struct.unpack('HHIIBBHHH',header_packed)
+        header_fields = ['src_port', 'dst_port', 'seq', 'ack', 'offset', 'flags', 'window', 'chksum', 'urg_ptr']
+        return dict(zip(header_fields, header))
+
+    def receive(self):
+        while True:
+            data, addr = self.recvsock.recvfrom(1024)
+            header = self.parse_header(data[:20])
+            if not self.check_chksum(data, header['chksum']):   #bad chksum, drop packet
+                continue
+            #right checksum
+            if header['seq'] == self.recv_seq:   #the packet we want
+                self.write_file(data[20:])
+                self.send_ack(self.recv_seq+ 1)
+                self.recv_seq += 1
+            if header['flag'] & 0x1 == 1:   #FIN
+                break
+
+def main(argv):
+    receive_hdlr = receiver(argv)
 
 if __name__ == "__main__":
     #receiver <filename> <listening_port> <sender_IP> <sender_port> <log_filename>
-
-    receiver_IP =
-    listening_port = sys.argv[1:].split()[1]
-    sender_IP = sys.argv[1:].split()[2]
-    sender_port = sys.argv[1:].split()[3]
-
-    #receive segment data, UDP socket
-    #regular expression match
-    if sender_IP == re.:
-        Rcvsocket = socket.socket(socket.AF_INET, #IPv4
-                                  socket.SOCK_DGRAM)
-    else:
-        Rcvsocket = socket.socket(socket.AF_INET6, #IPv6
-                                  socket.SOCK_DGRAM)
-    Rcvsocket.bind(('', listening_port))
-
-    #send ACK data, TCP socket
-    ACKsocket = socket.socket(socket.AF_INET,
-                              socket.SOCK_STREAM)
+    main(sys.argv[1:])
 
 
 

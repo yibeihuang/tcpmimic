@@ -53,7 +53,7 @@ class sender:
         self.windowchunk = math.floor(self.window_size/segment_size)
         self.sending_message = []
         self.seg_size = 576
-        self.sendsock = socket.socket(socket.AF_INET, socket.SOCKE_DGRAM)
+        self.sendsock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.recvsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.recvsock.bind('', self.ack_port_num)
         self.recvsock.listen(1)
@@ -129,6 +129,7 @@ class sender:
             (clientsocket, address) = self.recvsock.accept()
             ack_num = self.recvsock.recv()
             #if ack_num duplicates tree times, retransmit
+            
     def send(self):
         self.gen_msg()      #read file and split file into segs
         self.enable_ack()
